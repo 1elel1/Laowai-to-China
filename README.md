@@ -84,15 +84,15 @@ The seed creates one admin, three travellers and fifteen guides.
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@travelingmate.test` | `admin12345` |
-| Traveller | `sofia@example.com` | `password123` |
-| Traveller | `daniel@example.com` | `password123` |
-| Traveller | `mika@example.com` | `password123` |
-| Guide (professional, Beijing) | `liwei@example.com` | `password123` |
-| Guide (local friend, Chengdu) | `zhangmei@example.com` | `password123` |
-| Guide (pending review) | `guoqian@example.com` | `password123` |
+| Admin | `admin@travelingmate.test` | `guanliyuan123` |
+| Traveller | `sofia@example.com` | `yonghu123` |
+| Traveller | `daniel@example.com` | `yonghu123` |
+| Traveller | `mika@example.com` | `yonghu123` |
+| Guide (professional, Beijing) | `liwei@example.com` | `yonghu123` |
+| Guide (local friend, Chengdu) | `zhangmei@example.com` | `yonghu123` |
+| Guide (pending review) | `guoqian@example.com` | `yonghu123` |
 
-Every other seeded guide uses `password123` too — see `prisma/seed.ts` for the list.
+Every other seeded guide uses `yonghu123` too — see `prisma/seed.ts` for the list.
 
 ### Useful scripts
 

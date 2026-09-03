@@ -12,7 +12,7 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const PASSWORD = "password123";
+const PASSWORD = "yonghu123";
 
 type SeedGuide = {
   name: string;
@@ -413,7 +413,7 @@ async function main() {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 
   const adminEmail = process.env.ADMIN_EMAIL ?? "admin@travelingmate.test";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin12345";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "guanliyuan123";
   await prisma.user.create({
     data: {
       name: "Platform Admin",
