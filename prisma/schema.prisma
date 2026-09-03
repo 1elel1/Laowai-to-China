@@ -1,0 +1,216 @@
+// TravelingMate — schema is deliberately portable across SQLite and PostgreSQL.
+//
+// That means: no enums, no scalar lists, no Json columns, no @db.* native types.
+// Everything that would be an enum is a String constrained in src/lib/constants.ts,
+// and everything that would be a list is a join table. Switch engines with:
+//   npm run db:use postgresql     (then update DATABASE_URL and run db:push)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  // TRAVELER | GUIDE | ADMIN — see USER_ROLES
+  role         String   @default("TRAVELER")
+  avatarUrl    String?
+  // ISO-3166 alpha-2 of where the traveler is coming from, e.g. "US"
+  country      String?
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  guideProfile            GuideProfile?
+  bookingRequests         BookingRequest[] @relation("TravelerBookings")
+  conversationsAsTraveler Conversation[]   @relation("TravelerConversations")
+  conversationsAsGuide    Conversation[]   @relation("GuideConversations")
+  messages                Message[]
+  reviewsWritten          Review[]         @relation("ReviewAuthor")
+}
+
+// ---------------------------------------------------------------------------
+// Guides
+// ---------------------------------------------------------------------------
+
+model GuideProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  city     String
+  cityZh   String?
+  headline String
+  bio      String
+
+  // PROFESSIONAL (licensed, does this for a living) | LOCAL_FRIEND (amateur)
+  guideType   String
+  // PAID | FREE | DONATION — the profit / non-profit axis
+  pricingMode String @default("PAID")
+
+  hourlyRateCents Int     @default(0)
+  dailyRateCents  Int     @default(0)
+  currency        String  @default("CNY")
+  yearsExperience Int     @default(0)
+  // Chinese tour guide licence number, professionals only
+  licenseNo       String?
+  maxGroupSize    Int     @default(4)
+
+  // Private. Only returned to a traveler whose booking has been ACCEPTED.
+  contactWechat String?
+  contactPhone  String?
+
+  // DRAFT | PENDING | APPROVED | REJECTED | SUSPENDED — see GUIDE_STATUSES.
+  // Only APPROVED profiles are publicly listable.
+  status      String    @default("DRAFT")
+  reviewNote  String?
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+
+  ratingAvg   Float   @default(0)
+  ratingCount Int     @default(0)
+  featured    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  languages     GuideLanguage[]
+  themes        GuideTheme[]
+  photos        GuidePhoto[]
+  bookings      BookingRequest[]
+  conversations Conversation[]
+  reviews       Review[]
+
+  @@index([status, city])
+  @@index([status, ratingAvg])
+}
+
+model GuideLanguage {
+  id      String       @id @default(cuid())
+  guideId String
+  guide   GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  // ISO-639-1, e.g. "en", "ja", "de"
+  code    String
+  // NATIVE | FLUENT | CONVERSATIONAL
+  level   String       @default("FLUENT")
+
+  @@unique([guideId, code])
+  @@index([code])
+}
+
+model GuideTheme {
+  id      String       @id @default(cuid())
+  guideId String
+  guide   GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  // slug from THEMES, e.g. "food", "history", "nightlife"
+  slug    String
+
+  @@unique([guideId, slug])
+  @@index([slug])
+}
+
+model GuidePhoto {
+  id      String       @id @default(cuid())
+  guideId String
+  guide   GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  url     String
+  caption String?
+  sort    Int          @default(0)
+
+  @@index([guideId, sort])
+}
+
+// ---------------------------------------------------------------------------
+// Bookings and messaging
+// ---------------------------------------------------------------------------
+
+model BookingRequest {
+  id         String       @id @default(cuid())
+  travelerId String
+  traveler   User         @relation("TravelerBookings", fields: [travelerId], references: [id], onDelete: Cascade)
+  guideId    String
+  guide      GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  city        String
+  startDate   DateTime
+  endDate     DateTime
+  partySize   Int      @default(1)
+  message     String
+  budgetCents Int?
+
+  // PENDING | ACCEPTED | DECLINED | CANCELLED | COMPLETED
+  status      String    @default("PENDING")
+  guideReply  String?
+  respondedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversation Conversation?
+  review       Review?
+
+  @@index([travelerId, status])
+  @@index([guideId, status])
+}
+
+model Conversation {
+  id String @id @default(cuid())
+
+  travelerId  String
+  traveler    User   @relation("TravelerConversations", fields: [travelerId], references: [id], onDelete: Cascade)
+  guideUserId String
+  guideUser   User   @relation("GuideConversations", fields: [guideUserId], references: [id], onDelete: Cascade)
+
+  guideProfileId String
+  guideProfile   GuideProfile @relation(fields: [guideProfileId], references: [id], onDelete: Cascade)
+
+  bookingId String?         @unique
+  booking   BookingRequest? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  messages Message[]
+
+  @@unique([travelerId, guideProfileId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Review {
+  id        String         @id @default(cuid())
+  bookingId String         @unique
+  booking   BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User           @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  guideId   String
+  guide     GuideProfile   @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String
+  createdAt DateTime       @default(now())
+
+  @@index([guideId, createdAt])
+}

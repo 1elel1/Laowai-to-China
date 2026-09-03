@@ -1,0 +1,44 @@
+# Local Postgres + the app, for testing the production path before you deploy.
+#
+#   npm run db:use postgresql
+#   docker compose up --build
+#
+# Then run the migration and seed once:
+#   docker compose exec app npx prisma db push
+#   docker compose exec app npx tsx prisma/seed.ts
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: travelingmate
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: travelingmate
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U travelingmate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://travelingmate:localdev@db:5432/travelingmate?schema=public
+      # Replace before exposing this to anyone: openssl rand -base64 32
+      AUTH_SECRET: local-dev-secret-change-me-at-least-32-chars
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

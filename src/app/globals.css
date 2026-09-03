@@ -1,0 +1,225 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Palette. Tailwind v4 reads these at build time, so the theme tokens point at
+   plain CSS variables that we can redefine for dark mode at runtime.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --bg: #fbf9f5;
+  --surface: #ffffff;
+  --surface-2: #f4f1ea;
+  --ink: #16211f;
+  --ink-soft: #46534f;
+  --muted: #7b8783;
+  --line: #e3ded3;
+  --brand: #0e6f60;
+  --brand-hover: #0b5a4e;
+  --brand-soft: #e2f1ed;
+  --brand-ink: #084b41;
+  --accent: #c2571f;
+  --accent-soft: #fbeade;
+  --danger: #b3261e;
+  --danger-soft: #fbe6e4;
+  --warn: #8a6100;
+  --warn-soft: #fbf0d7;
+  --ok: #1c6b3f;
+  --ok-soft: #e0f2e6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101413;
+    --surface: #171d1c;
+    --surface-2: #1f2725;
+    --ink: #eef2f0;
+    --ink-soft: #b7c2be;
+    --muted: #86928e;
+    --line: #2b3533;
+    --brand: #4bbfa8;
+    --brand-hover: #63d2bb;
+    --brand-soft: #16302b;
+    --brand-ink: #a9e8da;
+    --accent: #e8935c;
+    --accent-soft: #33241b;
+    --danger: #f28b82;
+    --danger-soft: #37211f;
+    --warn: #e0b96a;
+    --warn-soft: #33291a;
+    --ok: #7fd39c;
+    --ok-soft: #172c20;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-serif: ui-serif, Georgia, "Songti SC", "Noto Serif SC", serif;
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+
+/* Keyboard focus only — mouse clicks should not draw a ring. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Small component layer. These are used often enough across pages that the
+   utility soup was worse than a named class.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  /* Tailwind v4 cannot @apply a custom class, so every button variant shares
+     one selector list for the base rather than composing from `.btn`. */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5
+           text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-55;
+  }
+  .btn-primary {
+    color: #fff;
+    background-color: var(--brand);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--brand-hover);
+  }
+  .btn-secondary {
+    @apply border;
+    background-color: var(--surface);
+    color: var(--ink);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--surface-2);
+  }
+  .btn-ghost {
+    color: var(--ink-soft);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--surface-2);
+    color: var(--ink);
+  }
+  .btn-danger {
+    @apply border;
+    color: var(--danger);
+    background-color: var(--surface);
+    border-color: var(--danger);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background-color: var(--danger-soft);
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .card {
+    @apply rounded-xl border;
+    background-color: var(--surface);
+  }
+
+  .field {
+    @apply w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors;
+    background-color: var(--surface);
+    color: var(--ink);
+  }
+  .field::placeholder {
+    color: var(--muted);
+  }
+  .field:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+  .field-error {
+    border-color: var(--danger);
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium;
+    color: var(--ink);
+  }
+  .hint {
+    @apply mt-1 text-xs;
+    color: var(--muted);
+  }
+  .error-text {
+    @apply mt-1 text-xs;
+    color: var(--danger);
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium
+           transition-colors;
+    color: var(--ink-soft);
+    background-color: var(--surface);
+  }
+  .chip-active {
+    background-color: var(--brand-soft);
+    color: var(--brand-ink);
+    border-color: var(--brand);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium;
+  }
+
+  .link {
+    color: var(--brand);
+    @apply underline-offset-2 hover:underline;
+  }
+
+  .section {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+}
+
+/* Hide the scrollbar on horizontally-scrolling chip rows without losing scroll. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
