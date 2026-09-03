@@ -6,15 +6,24 @@ import { SESSION_COOKIE, verifySession } from "@/lib/session";
 const PROTECTED = ["/dashboard", "/messages", "/guide", "/admin"];
 
 /**
- * A relative Location, which the browser resolves against the request URL.
+ * The origin the browser actually used.
  *
- * NextResponse.redirect() needs an absolute URL, and behind a reverse proxy the
- * standalone server builds that from HOSTNAME (127.0.0.1:3000) rather than the
- * public host — sending users to https://localhost:3000/login. Relative is
- * legal per RFC 7231 and correct in every deployment.
+ * `request.nextUrl.origin` is wrong behind a reverse proxy: the standalone
+ * server builds it from HOSTNAME/PORT (127.0.0.1:3000), which would redirect
+ * users to https://localhost:3000/login. The forwarded headers, or failing
+ * that the Host header, carry the real one. A relative Location is not an
+ * option — the middleware runtime parses it as an absolute URL and throws.
  */
-function redirectTo(path: string): NextResponse {
-  return new NextResponse(null, { status: 307, headers: { Location: path } });
+function publicOrigin(request: NextRequest): string {
+  const host =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? null;
+  if (!host) return request.nextUrl.origin;
+
+  const proto =
+    request.headers.get("x-forwarded-proto") ??
+    request.nextUrl.protocol.replace(":", "") ??
+    "http";
+  return `${proto}://${host}`;
 }
 
 export async function middleware(request: NextRequest) {
@@ -23,14 +32,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const origin = publicOrigin(request);
   const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
+
   if (!session) {
-    const next = encodeURIComponent(pathname + request.nextUrl.search);
-    return redirectTo(`/login?next=${next}`);
+    const login = new URL("/login", origin);
+    login.searchParams.set("next", pathname + request.nextUrl.search);
+    return NextResponse.redirect(login);
   }
 
   if (pathname.startsWith("/admin") && session.role !== "ADMIN") {
-    return redirectTo("/");
+    return NextResponse.redirect(new URL("/", origin));
   }
 
   return NextResponse.next();
