@@ -162,6 +162,36 @@ TCR, GHCR), then run it with `DATABASE_URL` and `AUTH_SECRET` injected as secret
 managed Postgres (阿里云 RDS / TencentDB) behind it. Put your load balancer or Nginx in
 front for TLS.
 
+### Option C — what is actually deployed right now
+
+Live at **https://tm.43.130.127.226.sslip.io** on a Tencent Cloud (international
+region, no ICP filing) Ubuntu 24.04 box that also hosts three unrelated projects
+behind the same nginx.
+
+```
+/opt/travelingmate          git clone of this repo
+/etc/travelingmate.env      DATABASE_URL, AUTH_SECRET, ADMIN_PASSWORD (0640 root:ubuntu)
+travelingmate.service       systemd unit, runs as ubuntu, binds 127.0.0.1:3000
+/etc/nginx/sites-available/travelingmate   its own vhost, not a default_server
+```
+
+To ship a change: push to `main`, then on the server run
+
+```bash
+deploy-travelingmate
+```
+
+which fetches, reinstalls, migrates, rebuilds and restarts.
+
+Two things that will bite you if you rebuild this by hand:
+
+- **`next start` does not work with `output: "standalone"`.** The unit runs
+  `node .next/standalone/server.js`. Only the standalone server honours
+  `HOSTNAME`, which is what keeps the process on loopback instead of `0.0.0.0`.
+- **The standalone bundle deliberately omits `public/` and `.next/static/`.**
+  They have to be copied in after every build, and removed first or the second
+  copy nests them. The deploy script does both.
+
 ### Environment variables
 
 | Variable | Required | Notes |
